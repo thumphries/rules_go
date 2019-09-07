@@ -111,7 +111,13 @@ def go_local_sdk(name, **kwargs):
     _register_toolchains(name)
 
 def _go_wrap_sdk_impl(ctx):
-    goroot = str(ctx.path(ctx.attr.root_file).dirname)
+    if ctx.attr.root_file:
+      goroot = str(ctx.path(ctx.attr.root_file).dirname)
+    elif ctx.attr.compiler_path:
+      goroot_pieces = str(ctx.path(ctx.attr.compiler_path)).split('/')[:-2]
+      goroot = '/'.join(goroot_pieces)
+    else:
+      fail("At least one of root_file or compiler_path must be set")
     platform = _detect_sdk_platform(ctx, goroot)
     _sdk_build_file(ctx, platform)
     _local_sdk(ctx, goroot)
@@ -120,8 +126,12 @@ _go_wrap_sdk = repository_rule(
     _go_wrap_sdk_impl,
     attrs = {
         "root_file": attr.label(
-            mandatory = True,
-            doc = "A file in the SDK root direcotry. Used to determine GOROOT.",
+            mandatory = False,
+            doc = "A file in the SDK root directory. Used to determine GOROOT.",
+        ),
+        "compiler_path": attr.label(
+            mandatory = False,
+            doc = "The path to the 'go' compiler. Used to determine GOROOT.",
         ),
     },
 )
